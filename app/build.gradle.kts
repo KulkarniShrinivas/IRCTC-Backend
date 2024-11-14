@@ -25,6 +25,10 @@ dependencies {
 
     //jakson dependency
     implementation("com.fasterxml.jackson.core:jackson-databind:2.13.0")
+
+    //BCrypt dependency
+    implementation("org.mindrot:jbcrypt:0.4")
+
 }
 
 application {

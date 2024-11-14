@@ -1,6 +1,7 @@
 package Ticket.booking.Services;
 
 import Ticket.booking.entities.User;
+import Ticket.booking.util.UserServiceUtil;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
@@ -55,6 +56,26 @@ public class UserBookingService {
         }
     }
 
+    private void saveUserListToFile() throws IOException {
+        File usersFile = new File(USER_PATH);
+        OBJECT_MAPPER.writeValue(usersFile, userList);
+    }
+
+    //fetBooking
+    public void fetchBooking(){
+        user.printTickets();
+    }
+
+    //cancel Booking
+    public Boolean cancelBooking(String ticketId){
+        return user.getTicketsBooked().removeIf(ticket -> ticket.getTicketId().equals(ticketId));
+
+    }
+
+
 
 
 }
+
+//json -> Object (User) -> Deserialize
+//Object (User) -> json -> Serialize
