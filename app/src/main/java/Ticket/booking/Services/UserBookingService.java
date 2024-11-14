@@ -1,5 +1,6 @@
 package Ticket.booking.Services;
 
+import Ticket.booking.entities.Train;
 import Ticket.booking.entities.User;
 import Ticket.booking.util.UserServiceUtil;
 import com.fasterxml.jackson.core.type.TypeReference;
@@ -11,8 +12,6 @@ import java.util.List;
 import java.util.Optional;
 
 public class UserBookingService {
-
-    private User user;
     //when user login app -> book ticket -> again we cannt ask user to authenticate to book ticket
     //so we will store user in session and use it to book ticket
     //we can call this as session management
@@ -21,37 +20,41 @@ public class UserBookingService {
     //will use objectmapper because to read and write json
     //it will serialize and deserialize json
 
+    private User user;
     private List<User> userList;
-
     private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
+    private static final String USER_PATH = "../../localDb/users.json";
+    private static final String TRAIN_PATH = "../../localDb/train.json";
 
-
-    private static final String USER_PATH = "app/src/main/java/Ticket/booking/data/users.json";
 
 
     public UserBookingService(User user1) throws IOException {
         this.user = user1;
-        File users = new File(USER_PATH);
-
-        userList = OBJECT_MAPPER.readValue(users, new TypeReference<List<User>>() {});
-
-
+        this.userList = loadUser();
     }
 
-    public Boolean loginUser(){
+    public UserBookingService() throws IOException {
+        this.userList = loadUser();
+    }
+
+    public List<User> loadUser() throws IOException {
+        File users = new File(USER_PATH);
+        return OBJECT_MAPPER.readValue(users, new TypeReference<List<User>>() {});
+    }
+
+    public Boolean loginUser(String name, String password) {
         Optional<User> foundUser = userList.stream().filter(user1 -> {
-            return user1.getName().equals(user.getName()) && UserServiceUtil.checkPassword(user.getPassword(), user1.getHashedPassword());
+            return user1.getName().equals(name) && UserServiceUtil.checkPassword(password, user1.getHashedPassword());
         }).findFirst();
         return foundUser.isPresent();
-
     }
 
-    public Boolean signUp(User user1){
-        try{
+    public Boolean signUp(User user1) {
+        try {
             userList.add(user1);
             saveUserListToFile();
             return Boolean.TRUE;
-        } catch (Exception e){
+        } catch (Exception e) {
             return Boolean.FALSE;
         }
     }
@@ -61,21 +64,53 @@ public class UserBookingService {
         OBJECT_MAPPER.writeValue(usersFile, userList);
     }
 
-    //fetBooking
-    public void fetchBooking(){
+    public void fetchBooking() {
         user.printTickets();
     }
 
-    //cancel Booking
-    public Boolean cancelBooking(String ticketId){
-        return user.getTicketsBooked().removeIf(ticket -> ticket.getTicketId().equals(ticketId));
-
+    public void cancelBooking(String ticketId) throws IOException {
+        user.getTicketsBooked().removeIf(ticket -> ticket.getTicketId().equals(ticketId));
+        saveUserListToFile();
     }
 
+    public List<Train> getTrains(String source, String destination) {
+        try {
+            TrainService trainService = new TrainService();
+            return trainService.searchTrains(source, destination);
+        } catch (IOException e) {
+            return null;
+        }
+    }
 
+    public List<List<Integer>> fetchSeats(Train train) {
+        return train.getSeats();
+    }
 
+    public Boolean bookTrainSeat(Train train, int row, int col) {
+        List<List<Integer>> seats = train.getSeats();
+        if (seats.get(row).get(col) == 0) {
+            seats.get(row).set(col, 1); // Mark the seat as booked
+            saveTrainListToFile(train);
+            return true;
+        } else {
+            return false;
+        }
+    }
 
+    private void saveTrainListToFile(Train train) {
+        try {
+            List<Train> trainList = loadTrains();
+            trainList.stream()
+                    .filter(t -> t.getTrainId().equals(train.getTrainId()))
+                    .forEach(t -> t.setSeats(train.getSeats()));
+            OBJECT_MAPPER.writeValue(new File(TRAIN_PATH), trainList);
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
+
+    private List<Train> loadTrains() throws IOException {
+        File trainsFile = new File(TRAIN_PATH);
+        return OBJECT_MAPPER.readValue(trainsFile, new TypeReference<List<Train>>() {});
+    }
 }
-
-//json -> Object (User) -> Deserialize
-//Object (User) -> json -> Serialize
